@@ -205,7 +205,8 @@
             const userId = urlParams.get('user_id') || '0';
             
             // استدعاء API السيرفر
-            fetch(`http://217.144.189.75:8080/get-prize?user_id=${userId}`)
+         fetch(`https://idol-seas-syndicate-exception.trycloudflare.com/get-prize?user_id=${userId}`)
+    
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
