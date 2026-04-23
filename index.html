@@ -140,7 +140,7 @@
     <div id="popup">
         <h1 style="color: #ffd700; margin: 0;">مبروك! 🎉</h1>
         <p id="prize-name" style="font-size: 28px; margin: 20px 0; color: white;"></p>
-        <button onclick="document.getElementById('popup').style.display='none'" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold; font-size:16px;">إغلاق</button>
+        <button onclick="closePopupAndSend()" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold; font-size:16px;">إغلاق</button>
     </div>
 
     <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
@@ -168,6 +168,7 @@
     const totalPrizes = prizes.length;
     const sliceAngle = 360 / totalPrizes;
     let currentRotation = 0; 
+    let currentPrizeLabel = null; // لتخزين الجائزة الحالية
 
     function drawWheel() {
         ctx.clearRect(0,0,600,600);
@@ -197,18 +198,35 @@
         }
     }
 
-    let isSpinning = false;
+    // ========== وظيفة طلب الجائزة من السيرفر ==========
+    function requestPrizeFromBot() {
+        return new Promise((resolve, reject) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user_id') || '0';
+            
+            // استدعاء API السيرفر
+            fetch(`http://217.144.189.75:8080/get-prize?user_id=${userId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resolve(data.prize_label);
+                    } else {
+                        alert('خطأ: ' + data.error);
+                        reject(data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
+                    alert('فشل الاتصال بالسيرفر');
+                    reject(error);
+                });
+        });
+    }
 
-    function spin() {
-        if (isSpinning) return;
-        isSpinning = true;
-
-        document.getElementById('popup').style.display = 'none';
-
-        spinSound.currentTime = 0;
-        spinSound.play();
-
-        const winnerIndex = getWeightedRandom();
+    // ========== وظيفة تدوير العجلة إلى جائزة محددة ==========
+    function spinWheelToPrize(prizeLabel) {
+        const winnerIndex = prizes.findIndex(p => p.label === prizeLabel);
+        if (winnerIndex === -1) return;
 
         const randomOffset = (Math.random() * (sliceAngle - 10)) + 5; 
         const prizeStartAngle = winnerIndex * sliceAngle;
@@ -233,9 +251,52 @@
             winSound.currentTime = 0;
             winSound.play(); 
             
-            document.getElementById('prize-name').innerText = prizes[winnerIndex].label;
+            currentPrizeLabel = prizeLabel;
+            document.getElementById('prize-name').innerText = prizeLabel;
             document.getElementById('popup').style.display = 'block';
         }, 6000);
+    }
+
+    let isSpinning = false;
+
+    // ========== وظيفة الدوران الرئيسية (تستدعي API أولاً) ==========
+    async function spin() {
+        if (isSpinning) return;
+        isSpinning = true;
+
+        document.getElementById('popup').style.display = 'none';
+        spinSound.currentTime = 0;
+        spinSound.play();
+
+        try {
+            // طلب الجائزة من السيرفر أولاً
+            const prizeLabel = await requestPrizeFromBot();
+            // تدوير العجلة إلى الجائزة المحددة
+            spinWheelToPrize(prizeLabel);
+        } catch (error) {
+            isSpinning = false;
+            spinSound.pause();
+            console.error('فشل في الحصول على الجائزة:', error);
+        }
+    }
+
+    // ========== إغلاق النافذة وإرسال النتيجة للبوت ==========
+    function closePopupAndSend() {
+        document.getElementById('popup').style.display = 'none';
+        
+        // إرسال النتيجة للبوت عبر Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData && currentPrizeLabel) {
+            const data = JSON.stringify({
+                action: 'spin_result',
+                prize_label: currentPrizeLabel
+            });
+            window.Telegram.WebApp.sendData(data);
+        }
+        
+        // إغلاق WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.close();
+        }
     }
 
     function getWeightedRandom() {
