@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Team Pro Wheel</title>
+    <style>
+        :root {
+            --gold-gradient: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+            --wheel-red: #d0021b;
+            --wheel-dark: #2d2d2d;
+            --bg-color: #0b0b0b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* اسم البوت فوق العجلة */
+        .bot-name {
+            font-size: 2.2rem;
+            font-weight: 900;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            filter: drop-shadow(0 2px 5px rgba(255,215,0,0.3));
+        }
+
+        .main-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            padding: 15px;
+            background: var(--gold-gradient);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* المؤشر العلوي (نفس شكل الصورة) */
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 50px;
+            background: #ffcc00;
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 20;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 5s cubic-bezier(0.2, 0, 0.1, 1);
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #ffd700, #b8860b);
+            border: 4px solid #fff;
+            border-radius: 50%;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .center-circle:active { transform: translate(-50%, -50%) scale(0.95); }
+
+        .spin-text {
+            color: #111;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* نافذة النتيجة (الاحتفال) */
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.95);
+            border: 2px solid #ffd700;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 100px rgba(255,215,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bot-name">X-Team Pro</div>
+
+    <div class="main-container">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="600" height="600"></canvas>
+        <div class="center-circle" onclick="spin()">
+            <div class="spin-text">قم<br>بالتدوير</div>
+        </div>
+    </div>
+
+    <div id="popup">
+        <h1 style="color: #ffd700; margin: 0;">مبروك! 🎉</h1>
+        <p id="prize-name" style="font-size: 28px; margin: 20px 0;"></p>
+        <button onclick="location.reload()" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold;">تدوير مرة أخرى</button>
+    </div>
+
+    <audio id="tickSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+
+<script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const tickSound = document.getElementById('tickSound');
+
+    // المعطيات والنسب المئوية التي طلبتها
+    const prizes = [
+        { label: "150,000 ل.س", weight: 0.5 },
+        { label: "100,000 ل.س", weight: 1 },
+        { label: "50,000 ل.س", weight: 1.5 },
+        { label: "25,000 ل.س", weight: 3 },
+        { label: "10,000 ل.س", weight: 14 },
+        { label: "5,000 ل.س", weight: 20 },
+        { label: "1,000 ل.س", weight: 25 },
+        { label: "10% شحن", weight: 20 },
+        { label: "20% شحن", weight: 15 }
+    ];
+
+    const colors = ["#d0021b", "#2d2d2d"]; // أحمر ورمادي غامق مثل الصورة
+    const totalPrizes = prizes.length;
+    const arcSize = (Math.PI * 2) / totalPrizes;
+
+    function drawWheel() {
+        ctx.clearRect(0,0,600,600);
+        for(let i=0; i<totalPrizes; i++) {
+            const angle = i * arcSize;
+            ctx.fillStyle = colors[i % 2];
+            
+            ctx.beginPath();
+            ctx.moveTo(300, 300);
+            ctx.arc(300, 300, 300, angle, angle + arcSize);
+            ctx.fill();
+            ctx.stroke();
+
+            // إضافة النصوص
+            ctx.save();
+            ctx.translate(300, 300);
+            ctx.rotate(angle + arcSize / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "white";
+            ctx.font = "bold 22px Arial";
+            ctx.fillText(prizes[i].label, 270, 10);
+            ctx.restore();
+        }
+    }
+
+    let isSpinning = false;
+    function spin() {
+        if (isSpinning) return;
+        isSpinning = true;
+
+        // حساب الجائزة بناءً على الوزن (النسبة المئوية)
+        const winnerIndex = getWeightedRandom();
+        const stopAngle = (totalPrizes - winnerIndex) * (360/totalPrizes) - (360/totalPrizes/2);
+        const totalRotation = 3600 + stopAngle; // 10 دورات + زاوية الجائزة
+
+        canvas.style.transform = `rotate(${totalRotation}deg)`;
+        
+        // صوت التكة البسيط (محاكاة)
+        let soundInterval = setInterval(() => tickSound.play(), 200);
+
+        setTimeout(() => {
+            clearInterval(soundInterval);
+            isSpinning = false;
+            document.getElementById('prize-name').innerText = prizes[winnerIndex].label;
+            document.getElementById('popup').style.display = 'block';
+        }, 5000);
+    }
+
+    function getWeightedRandom() {
+        const totalWeight = prizes.reduce((acc, p) => acc + p.weight, 0);
+        let random = Math.random() * totalWeight;
+        for (let i = 0; i < prizes.length; i++) {
+            if (random < prizes[i].weight) return i;
+            random -= prizes[i].weight;
+        }
+    }
+
+    drawWheel();
+</script>
+</body>
+</html>
