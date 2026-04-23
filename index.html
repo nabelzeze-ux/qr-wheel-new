@@ -7,8 +7,6 @@
     <style>
         :root {
             --gold-gradient: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
-            --wheel-red: #d0021b;
-            --wheel-dark: #2d2d2d;
             --bg-color: #0b0b0b;
         }
 
@@ -25,7 +23,6 @@
             overflow: hidden;
         }
 
-        /* اسم البوت فوق العجلة */
         .bot-name {
             font-size: 2.2rem;
             font-weight: 900;
@@ -40,15 +37,14 @@
 
         .main-container {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 350px;
+            height: 350px;
             padding: 15px;
             background: var(--gold-gradient);
             border-radius: 50%;
             box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* المؤشر العلوي (نفس شكل الصورة) */
         .pointer {
             position: absolute;
             top: -15px;
@@ -59,14 +55,15 @@
             background: #ffcc00;
             clip-path: polygon(50% 100%, 0 0, 100% 0);
             z-index: 20;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));
         }
 
         canvas {
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            transition: transform 5s cubic-bezier(0.2, 0, 0.1, 1);
+            /* تأثير دوران ناعم جداً ويتباطأ في النهاية */
+            transition: transform 6s cubic-bezier(0.25, 0.1, 0.1, 1); 
         }
 
         .center-circle {
@@ -92,12 +89,11 @@
         .spin-text {
             color: #111;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 15px;
             text-align: center;
             line-height: 1.2;
         }
 
-        /* نافذة النتيجة (الاحتفال) */
         #popup {
             display: none;
             position: fixed;
@@ -111,6 +107,12 @@
             text-align: center;
             z-index: 100;
             box-shadow: 0 0 100px rgba(255,215,0,0.2);
+            animation: popIn 0.5s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -128,18 +130,20 @@
 
     <div id="popup">
         <h1 style="color: #ffd700; margin: 0;">مبروك! 🎉</h1>
-        <p id="prize-name" style="font-size: 28px; margin: 20px 0;"></p>
-        <button onclick="location.reload()" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold;">تدوير مرة أخرى</button>
+        <p id="prize-name" style="font-size: 28px; margin: 20px 0; color: white;"></p>
+        <button onclick="document.getElementById('popup').style.display='none'" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold; font-size:16px;">إغلاق</button>
     </div>
 
-    <audio id="tickSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+    <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
+    <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3" preload="auto"></audio>
 
 <script>
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
-    const tickSound = document.getElementById('tickSound');
+    const spinSound = document.getElementById('spinSound');
+    const winSound = document.getElementById('winSound');
 
-    // المعطيات والنسب المئوية التي طلبتها
+    // الجوائز مع النسب (لا تظهر للمستخدم)
     const prizes = [
         { label: "150,000 ل.س", weight: 0.5 },
         { label: "100,000 ل.س", weight: 1 },
@@ -152,12 +156,16 @@
         { label: "20% شحن", weight: 15 }
     ];
 
-    const colors = ["#d0021b", "#2d2d2d"]; // أحمر ورمادي غامق مثل الصورة
+    const colors = ["#d0021b", "#2d2d2d"]; 
     const totalPrizes = prizes.length;
-    const arcSize = (Math.PI * 2) / totalPrizes;
+    const sliceAngle = 360 / totalPrizes;
+    let currentRotation = 0; // لحفظ الزاوية الحالية للعجلة
 
+    // رسم العجلة
     function drawWheel() {
         ctx.clearRect(0,0,600,600);
+        const arcSize = (Math.PI * 2) / totalPrizes;
+
         for(let i=0; i<totalPrizes; i++) {
             const angle = i * arcSize;
             ctx.fillStyle = colors[i % 2];
@@ -166,6 +174,9 @@
             ctx.moveTo(300, 300);
             ctx.arc(300, 300, 300, angle, angle + arcSize);
             ctx.fill();
+            
+            ctx.strokeStyle = "#ffcc00"; // خط ذهبي خفيف بين الجوائز
+            ctx.lineWidth = 2;
             ctx.stroke();
 
             // إضافة النصوص
@@ -174,35 +185,66 @@
             ctx.rotate(angle + arcSize / 2);
             ctx.textAlign = "right";
             ctx.fillStyle = "white";
-            ctx.font = "bold 22px Arial";
-            ctx.fillText(prizes[i].label, 270, 10);
+            ctx.font = "bold 24px Arial";
+            ctx.fillText(prizes[i].label, 270, 8);
             ctx.restore();
         }
     }
 
     let isSpinning = false;
+
     function spin() {
         if (isSpinning) return;
         isSpinning = true;
 
-        // حساب الجائزة بناءً على الوزن (النسبة المئوية)
+        // إخفاء نافذة النتيجة إذا كانت مفتوحة
+        document.getElementById('popup').style.display = 'none';
+
+        // تشغيل صوت الدوران
+        spinSound.currentTime = 0;
+        spinSound.play();
+
+        // 1. تحديد الفائز بناءً على النسب
         const winnerIndex = getWeightedRandom();
-        const stopAngle = (totalPrizes - winnerIndex) * (360/totalPrizes) - (360/totalPrizes/2);
-        const totalRotation = 3600 + stopAngle; // 10 دورات + زاوية الجائزة
 
-        canvas.style.transform = `rotate(${totalRotation}deg)`;
+        // 2. حساب زاوية الجائزة الفائزة (نقطة عشوائية داخل شريحة الجائزة لتبدو طبيعية)
+        // نبتعد عن الحواف (5 درجات) حتى لا يقف المؤشر على الخط الفاصل
+        const randomOffset = (Math.random() * (sliceAngle - 10)) + 5; 
+        const prizeStartAngle = winnerIndex * sliceAngle;
+        const initialAngle = prizeStartAngle + randomOffset;
+
+        // 3. المؤشر العلوي موجود عند زاوية 270 درجة (أو -90).
+        // نحسب كم يجب أن تدور العجلة لتتطابق زاوية الجائزة مع الـ 270 درجة
+        let rotationNeeded = 270 - initialAngle;
+        if (rotationNeeded < 0) {
+            rotationNeeded += 360;
+        }
+
+        // 4. إضافة دورات إضافية (مثلاً 8 دورات كاملة = 2880 درجة) لزيادة التشويق
+        const extraSpins = 360 * 8;
         
-        // صوت التكة البسيط (محاكاة)
-        let soundInterval = setInterval(() => tickSound.play(), 200);
+        // 5. حساب الدوران النهائي مع الأخذ بعين الاعتبار الدوران السابق (حتى لا ترجع العجلة للصفر)
+        const baseRotation = Math.ceil(currentRotation / 360) * 360;
+        const finalRotation = baseRotation + extraSpins + rotationNeeded;
 
+        // تطبيق الدوران
+        currentRotation = finalRotation;
+        canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+        // الانتظار حتى انتهاء الانيميشن (6 ثواني كما هو محدد في CSS)
         setTimeout(() => {
-            clearInterval(soundInterval);
             isSpinning = false;
+            spinSound.pause(); // إيقاف صوت الدوران
+            winSound.currentTime = 0;
+            winSound.play(); // تشغيل صوت الفوز
+            
+            // إظهار النتيجة المتطابقة تماماً مع المؤشر
             document.getElementById('prize-name').innerText = prizes[winnerIndex].label;
             document.getElementById('popup').style.display = 'block';
-        }, 5000);
+        }, 6000);
     }
 
+    // دالة السحب الموزون (النسب المئوية) المخفية
     function getWeightedRandom() {
         const totalWeight = prizes.reduce((acc, p) => acc + p.weight, 0);
         let random = Math.random() * totalWeight;
@@ -210,6 +252,7 @@
             if (random < prizes[i].weight) return i;
             random -= prizes[i].weight;
         }
+        return 0; // كخطأ احتياطي
     }
 
     drawWheel();
