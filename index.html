@@ -2,315 +2,143 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>X-Team Pro Wheel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wayxbet - Xteam Pro Spin Wheel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --gold-gradient: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
-            --bg-color: #0b0b0b;
+            --bg-color: #0a0f1d;
+            --accent-color: #00d2ff;
+            --text-color: #ffffff;
+            --card-border: rgba(0, 210, 255, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
         }
 
         body {
             background-color: var(--bg-color);
-            color: white;
-            font-family: 'Arial', sans-serif;
+            color: var(--text-color);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* التموضع من الأعلى بدلاً من الوسط المطلق */
-            padding-top: 8vh; /* مسافة ديناميكية من أعلى الشاشة */
+            justify-content: center;
             min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden; /* منع ظهور شريط التمرير الجانبي */
-            box-sizing: border-box;
+            padding: 20px;
         }
 
-        .bot-name {
-            font-size: 2.2rem;
-            font-weight: 900;
-            background: var(--gold-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 40px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            filter: drop-shadow(0 2px 5px rgba(255,215,0,0.3));
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        /* حاوية اللعبة */
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
             text-align: center;
         }
 
-        .main-container {
+        /* العجلة */
+        .wheel-container {
             position: relative;
-            width: 90vw; /* العرض يتناسب مع الشاشة لضمان ظهور الأطراف */
-            max-width: 350px; /* حد أقصى للعرض */
-            height: 90vw; /* الطول يساوي العرض للحفاظ على الاستدارة */
-            max-height: 350px; /* حد أقصى للطول */
-            padding: 15px;
-            background: var(--gold-gradient);
-            border-radius: 50%;
-            box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.5);
-            margin: 0 auto; /* تثبيت في المنتصف أفقياً */
-            box-sizing: border-box;
-        }
-
-        .pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 50px;
-            background: #ffcc00;
-            clip-path: polygon(50% 100%, 0 0, 100% 0);
-            z-index: 20;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));
-        }
-
-        canvas {
             width: 100%;
-            height: 100%;
+            aspect-ratio: 1;
+            max-width: 400px;
+            margin: 0 auto;
             border-radius: 50%;
-            transition: transform 6s cubic-bezier(0.25, 0.1, 0.1, 1); 
-            display: block; /* يمنع أي فراغات إضافية تحت الكانفاس */
-        }
-
-        .center-circle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, #ffd700, #b8860b);
-            border: 4px solid #fff;
-            border-radius: 50%;
-            z-index: 15;
+            border: 4px solid var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            background: #111827;
+            transition: transform 1s ease-in-out;
         }
 
-        .center-circle:active { transform: translate(-50%, -50%) scale(0.95); }
+        .wheel-center {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #0e1b2a, #1f2937);
+            border-radius: 50%;
+            border: 2px solid #fbbf24;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
 
-        .spin-text {
-            color: #111;
+        .wheel-center span {
+            font-size: 14px;
+            color: #fbbf24;
             font-weight: bold;
-            font-size: 15px;
-            text-align: center;
-            line-height: 1.2;
         }
 
-        #popup {
+        /* زر التدوير */
+        .spin-button {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #00d2ff, #0077ff);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+            transition: all 0.3s;
+        }
+
+        .spin-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--accent-color);
+        }
+
+        /* شبكة البطاقات */
+        .cards-grid {
             display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            border: 2px solid #ffd700;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            z-index: 100;
-            box-shadow: 0 0 100px rgba(255,215,0,0.2);
-            animation: popIn 0.5s ease-out;
-            width: 80%;
-            max-width: 400px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
         }
 
-        @keyframes popIn {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        }
-    </style>
-</head>
-<body>
-
-    <div class="bot-name">X-Team Pro</div>
-
-    <div class="main-container">
-        <div class="pointer"></div>
-        <canvas id="wheelCanvas" width="600" height="600"></canvas>
-        <div class="center-circle" onclick="spin()">
-            <div class="spin-text">قم<br>بالتدوير</div>
-        </div>
-    </div>
-
-    <div id="popup">
-        <h1 style="color: #ffd700; margin: 0;">مبروك! 🎉</h1>
-        <p id="prize-name" style="font-size: 28px; margin: 20px 0; color: white;"></p>
-        <button onclick="closePopupAndSend()" style="background:var(--gold-gradient); border:none; padding:10px 25px; border-radius:5px; cursor:pointer; font-weight:bold; font-size:16px;">إغلاق</button>
-    </div>
-
-    <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3" preload="auto"></audio>
-    <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3" preload="auto"></audio>
-
-<script>
-    const canvas = document.getElementById('wheelCanvas');
-    const ctx = canvas.getContext('2d');
-    const spinSound = document.getElementById('spinSound');
-    const winSound = document.getElementById('winSound');
-
-    const prizes = [
-        { label: "150,000 ل.س", weight: 0.5 },
-        { label: "100,000 ل.س", weight: 1 },
-        { label: "50,000 ل.س", weight: 1.5 },
-        { label: "25,000 ل.س", weight: 3 },
-        { label: "10,000 ل.س", weight: 14 },
-        { label: "5,000 ل.س", weight: 20 },
-        { label: "1,000 ل.س", weight: 25 },
-        { label: "10% شحن", weight: 20 },
-        { label: "20% شحن", weight: 15 }
-    ];
-
-    const colors = ["#d0021b", "#2d2d2d"]; 
-    const totalPrizes = prizes.length;
-    const sliceAngle = 360 / totalPrizes;
-    let currentRotation = 0; 
-    let currentPrizeLabel = null; // لتخزين الجائزة الحالية
-
-    function drawWheel() {
-        ctx.clearRect(0,0,600,600);
-        const arcSize = (Math.PI * 2) / totalPrizes;
-
-        for(let i=0; i<totalPrizes; i++) {
-            const angle = i * arcSize;
-            ctx.fillStyle = colors[i % 2];
-            
-            ctx.beginPath();
-            ctx.moveTo(300, 300);
-            ctx.arc(300, 300, 300, angle, angle + arcSize);
-            ctx.fill();
-            
-            ctx.strokeStyle = "#ffcc00"; 
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.save();
-            ctx.translate(300, 300);
-            ctx.rotate(angle + arcSize / 2);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "white";
-            ctx.font = "bold 24px Arial";
-            ctx.fillText(prizes[i].label, 270, 8);
-            ctx.restore();
-        }
-    }
-
-    // ========== وظيفة طلب الجائزة من السيرفر ==========
-    function requestPrizeFromBot() {
-        return new Promise((resolve, reject) => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get('user_id') || '0';
-            
-            // استدعاء API السيرفر
-         
-         fetch(`https://eng-coordination-vincent-pod.trycloudflare.com/get-prize?user_id=${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        resolve(data.prize_label);
-                    } else {
-                        alert('خطأ: ' + data.error);
-                        reject(data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('API Error:', error);
-                    alert('فشل الاتصال بالسيرفر');
-                    reject(error);
-                });
-        });
-    }
-
-    // ========== وظيفة تدوير العجلة إلى جائزة محددة ==========
-    function spinWheelToPrize(prizeLabel) {
-        const winnerIndex = prizes.findIndex(p => p.label === prizeLabel);
-        if (winnerIndex === -1) return;
-
-        const randomOffset = (Math.random() * (sliceAngle - 10)) + 5; 
-        const prizeStartAngle = winnerIndex * sliceAngle;
-        const initialAngle = prizeStartAngle + randomOffset;
-
-        let rotationNeeded = 270 - initialAngle;
-        if (rotationNeeded < 0) {
-            rotationNeeded += 360;
+        .card-item {
+            aspect-ratio: 1.5;
+            background: linear-gradient(145deg, #1f2937, #374151);
+            border: 2px solid var(--card-border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
 
-        const extraSpins = 360 * 8;
-        
-        const baseRotation = Math.ceil(currentRotation / 360) * 360;
-        const finalRotation = baseRotation + extraSpins + rotationNeeded;
-
-        currentRotation = finalRotation;
-        canvas.style.transform = `rotate(${currentRotation}deg)`;
-
-        setTimeout(() => {
-            isSpinning = false;
-            spinSound.pause(); 
-            winSound.currentTime = 0;
-            winSound.play(); 
-            
-            currentPrizeLabel = prizeLabel;
-            document.getElementById('prize-name').innerText = prizeLabel;
-            document.getElementById('popup').style.display = 'block';
-        }, 6000);
-    }
-
-    let isSpinning = false;
-
-    // ========== وظيفة الدوران الرئيسية (تستدعي API أولاً) ==========
-    async function spin() {
-        if (isSpinning) return;
-        isSpinning = true;
-
-        document.getElementById('popup').style.display = 'none';
-        spinSound.currentTime = 0;
-        spinSound.play();
-
-        try {
-            // طلب الجائزة من السيرفر أولاً
-            const prizeLabel = await requestPrizeFromBot();
-            // تدوير العجلة إلى الجائزة المحددة
-            spinWheelToPrize(prizeLabel);
-        } catch (error) {
-            isSpinning = false;
-            spinSound.pause();
-            console.error('فشل في الحصول على الجائزة:', error);
+        .card-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px var(--accent-color);
         }
-    }
 
-    // ========== إغلاق النافذة وإرسال النتيجة للبوت ==========
-    function closePopupAndSend() {
-        document.getElementById('popup').style.display = 'none';
-        
-        // إرسال النتيجة للبوت عبر Telegram WebApp
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData && currentPrizeLabel) {
-            const data = JSON.stringify({
-                action: 'spin_result',
-                prize_label: currentPrizeLabel
-            });
-            window.Telegram.WebApp.sendData(data);
+        .card-item.revealed {
+            background: #111827;
+            color: #fbbf24;
+            border-color: #fbbf24;
+            cursor: default;
         }
-        
-        // إغلاق WebApp
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.close();
-        }
-    }
-
-    function getWeightedRandom() {
-        const totalWeight = prizes.reduce((acc, p) => acc + p.weight, 0);
-        let random = Math.random() * totalWeight;
-        for (let i = 0; i < prizes.length; i++) {
-            if (random < prizes[i].weight) return i;
-            random -= prizes[i].weight;
-        }
-        return 0; 
-    }
-
-    drawWheel();
-</script>
-</body>
-</html>
